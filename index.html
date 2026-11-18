@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#155eef">
+<title>My Ledger Pro</title>
+<style>
+:root{--blue:#155eef;--green:#16834a;--red:#c62828;--bg:#f3f6fb;--ink:#172033}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;padding:14px}
+.wrap{max-width:720px;margin:auto}
+header{background:linear-gradient(135deg,#155eef,#1645a5);color:white;padding:18px;border-radius:16px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+header h1{font-size:20px;margin:0} header p{margin:4px 0 0;font-size:12px;opacity:.85}
+button{border:0;border-radius:10px;padding:12px 14px;font-weight:700;font-size:14px;cursor:pointer}
+button:focus,input:focus,select:focus{outline:2px solid #8ab4ff;outline-offset:1px}
+.light{background:#ffffff25;color:white}
+.card{background:white;border-radius:14px;padding:15px;margin-top:14px;box-shadow:0 3px 14px #1b31500d}
+.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.stat{background:white;border-radius:12px;padding:12px 8px;text-align:center;box-shadow:0 2px 10px #1b31500b}
+.stat small{display:block;color:#687386;font-size:11px}.stat strong{display:block;font-size:17px;margin-top:5px;overflow-wrap:anywhere}
+.in{color:var(--green)}.out{color:var(--red)}.balance{color:var(--blue)}
+h2{font-size:16px;margin:0 0 12px}
+label{display:block;font-size:12px;font-weight:700;color:#566176;margin:9px 0 5px}
+input,select{width:100%;padding:12px;border:1px solid #d5dce8;border-radius:9px;background:white;font:inherit;font-size:15px;color:var(--ink)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.actions{display:flex;gap:9px;margin-top:12px}
+.actions button{flex:1;color:white}
+.btn-in{background:var(--green)}.btn-out{background:var(--red)}.btn-blue{background:var(--blue);color:white}
+.tools{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.tools button{background:#eaf0ff;color:#1749a5}
+.tools .restore{background:#fff0dd;color:#8b4a00}
+.tools .danger{background:#ffebeb;color:#a21c1c}
+.entry{display:flex;justify-content:space-between;gap:10px;padding:12px 0;border-bottom:1px solid #edf0f5}
+.entry:last-child{border-bottom:0}.entry h3{font-size:14px;margin:0 0 4px;overflow-wrap:anywhere}
+.meta{font-size:11px;color:#778195}.amount{text-align:right;font-weight:800;white-space:nowrap}
+.entry-buttons{display:flex;gap:6px;justify-content:flex-end;margin-top:6px}
+.entry-buttons button{padding:5px 8px;font-size:11px;background:#eef2f8;color:#38445a}
+.empty{text-align:center;color:#7a8495;padding:22px 5px;font-size:13px}
+.note{font-size:11px;color:#69758a;line-height:1.5}
+#lock{position:fixed;inset:0;background:#123f9e;display:flex;align-items:center;justify-content:center;padding:20px;z-index:10}
+.lockbox{background:white;color:var(--ink);padding:24px;border-radius:18px;width:min(100%,360px);text-align:center}
+.lockbox h2{font-size:21px}.lockbox p{font-size:13px;color:#667085}
+.lockbox input{text-align:center;letter-spacing:9px;font-size:23px}
+.lockbox button{width:100%;background:var(--blue);color:white;margin-top:10px}
+#lockMsg{color:var(--red);min-height:20px;font-size:12px}
+.hidden{display:none!important}
+footer{text-align:center;color:#8992a2;font-size:11px;padding:18px 5px}
+@media(max-width:390px){.stat strong{font-size:14px}.summary{gap:5px}.row{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div id="lock">
+  <div class="lockbox">
+    <div style="font-size:34px">🔐</div>
+    <h2>My Ledger Pro</h2>
+    <p id="lockText">Enter your 4-digit PIN</p>
+    <input id="pinInput" type="password" inputmode="numeric" maxlength="4" placeholder="••••" autocomplete="off">
+    <button id="pinButton">Unlock</button>
+    <div id="lockMsg"></div>
+    <p class="note">First time? Choose a new 4-digit PIN. Keep it private.</p>
+  </div>
+</div>
+
+<div class="wrap hidden" id="app">
+<header>
+ <div><h1>📒 My Ledger Pro</h1><p>నా లెడ్జర్ ప్రో · Daily money record</p></div>
+ <button class="light" id="changePinBtn">Change PIN</button>
+</header>
+
+<section class="summary">
+ <div class="stat"><small>Total Money In</small><strong class="in" id="totalIn">₹0.00</strong></div>
+ <div class="stat"><small>Total Money Out</small><strong class="out" id="totalOut">₹0.00</strong></div>
+ <div class="stat"><small>Current Balance</small><strong class="balance" id="balance">₹0.00</strong></div>
+</section>
+
+<section class="card">
+ <h2 id="formTitle">➕ Add transaction</h2>
+ <label for="description">Description / Name</label>
+ <input id="description" maxlength="80" placeholder="Example: Salary, groceries, payment">
+ <div class="row">
+  <div><label for="amount">Amount (₹)</label><input id="amount" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="0.00"></div>
+  <div><label for="date">Date</label><input id="date" type="date"></div>
+ </div>
+ <div class="actions">
+  <button class="btn-in" id="addIn">＋ Money In</button>
+  <button class="btn-out" id="addOut">－ Money Out</button>
+ </div>
+ <button class="btn-blue hidden" id="cancelEdit" style="width:100%;margin-top:9px">Cancel editing</button>
+</section>
+
+<section class="card">
+ <h2>🧰 Backup & tools</h2>
+ <div class="tools">
+  <button id="backupBtn">⬇ Download backup</button>
+  <button class="restore" id="restoreBtn">⬆ Restore backup</button>
+  <button id="exportBtn">Export CSV</button>
+  <button class="danger" id="clearBtn">Clear all records</button>
+ </div>
+ <input id="restoreFile" type="file" accept=".json,application/json" class="hidden">
+ <p class="note">Download a backup regularly. Restore replaces the records currently stored in this browser.</p>
+</section>
+
+<section class="card">
+ <h2>📜 Transaction history</h2>
+ <label for="filter">Filter records</label>
+ <select id="filter">
+  <option value="all">All transactions</option>
+  <option value="in">Money In only</option>
+  <option value="out">Money Out only</option>
+  <option value="today">Today</option>
+  <option value="month">This month</option>
+ </select>
+ <div id="history"></div>
+</section>
+<footer>My Ledger Pro · Your records stay in this browser on this device.</footer>
+</div>
+
+<script>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const DATA_KEY="myLedgerPro_records_v1", PIN_KEY="myLedgerPro_pin_v1";
+let records=[], editingId=null;
+const today=()=>new Date().toISOString().slice(0,10);
+const money=n=>new Intl.NumberFormat("en-IN",{style:"currency",currency:"INR"}).format(n);
+const safeText=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function load(){try{const v=JSON.parse(localStorage.getItem(DATA_KEY)||"[]");records=Array.isArray(v)?v.filter(x=>x&&["in","out"].includes(x.type)&&Number.isFinite(Number(x.amount))&&Number(x.amount)>0):[]}catch(e){records=[]}}
+function save(){localStorage.setItem(DATA_KEY,JSON.stringify(records))}
+function showApp(){$("lock").classList.add("hidden");$("app").classList.remove("hidden");$("date").value=today();render()}
+function lockSetup(){
+ const saved=localStorage.getItem(PIN_KEY);
+ $("lockText").textContent=saved?"Enter your 4-digit PIN":"Create your 4-digit PIN";
+ $("pinButton").textContent=saved?"Unlock":"Set PIN";
+}
+function unlock(){
+ const pin=$("pinInput").value;
+ if(!/^\d{4}$/.test(pin)){$("lockMsg").textContent="Please enter exactly 4 digits.";return}
+ const saved=localStorage.getItem(PIN_KEY);
+ if(!saved){localStorage.setItem(PIN_KEY,pin);$("pinInput").value="";load();showApp();return}
+ if(pin===saved){$("lockMsg").textContent="";$("pinInput").value="";load();showApp()}
+ else{$("lockMsg").textContent="Incorrect PIN. Try again.";$("pinInput").value=""}
+}
+$("pinButton").addEventListener("click",unlock);
+$("pinInput").addEventListener("keydown",e=>{if(e.key==="Enter")unlock()});
+lockSetup();
+
+function resetForm(){editingId=null;$("description").value="";$("amount").value="";$("date").value=today();$("formTitle").textContent="➕ Add transaction";$("cancelEdit").classList.add("hidden")}
+function add(type){
+ const description=$("description").value.trim(), amount=Number($("amount").value), date=$("date").value;
+ if(!description){alert("Please enter a description.");return}
+ if(!Number.isFinite(amount)||amount<=0){alert("Please enter an amount greater than zero.");return}
+ if(!date){alert("Please choose a date.");return}
+ if(editingId){const item=records.find(x=>x.id===editingId);if(item){item.description=description;item.amount=Math.round(amount*100)/100;item.date=date;item.type=type}}
+ else records.unshift({id:Date.now().toString(36)+Math.random().toString(36).slice(2,7),description,amount:Math.round(amount*100)/100,date,type,createdAt:new Date().toISOString()});
+ save();resetForm();render()
+}
+$("addIn").addEventListener("click",()=>add("in"));
+$("addOut").addEventListener("click",()=>add("out"));
+$("cancelEdit").addEventListener("click",resetForm);
+$("filter").addEventListener("change",render);
+
+function render(){
+ const totalIn=records.filter(x=>x.type==="in").reduce((s,x)=>s+Number(x.amount),0);
+ const totalOut=records.filter(x=>x.type==="out").reduce((s,x)=>s+Number(x.amount),0);
+ $("totalIn").textContent=money(totalIn);$("totalOut").textContent=money(totalOut);$("balance").textContent=money(totalIn-totalOut);
+ const f=$("filter").value, now=today(), month=now.slice(0,7);
+ const list=records.filter(x=>f==="all"||(f==="in"&&x.type==="in")||(f==="out"&&x.type==="out")||(f==="today"&&x.date===now)||(f==="month"&&x.date.startsWith(month))).slice().sort((a,b)=>b.date.localeCompare(a.date)||String(b.id).localeCompare(String(a.id)));
+ if(!list.length){$("history").innerHTML='<div class="empty">No transactions yet. Add your first record above.</div>';return}
+ $("history").innerHTML=list.map(x=>`<div class="entry">
+ <div style="min-width:0"><h3>${safeText(x.description)}</h3><div class="meta">${safeText(x.date)} · ${x.type==="in"?"Money In":"Money Out"}</div></div>
+ <div><div class="amount ${x.type==="in"?"in":"out"}">${x.type==="in"?"+":"−"}${money(Number(x.amount))}</div>
+ <div class="entry-buttons"><button data-edit="${safeText(x.id)}">Edit</button><button data-delete="${safeText(x.id)}">Delete</button></div></div></div>`).join("");
+}
+$("history").addEventListener("click",e=>{
+ const edit=e.target.closest("[data-edit]"), del=e.target.closest("[data-delete]");
+ if(edit){const x=records.find(r=>r.id===edit.dataset.edit);if(!x)return;editingId=x.id;$("description").value=x.description;$("amount").value=x.amount;$("date").value=x.date;$("formTitle").textContent="✏️ Edit transaction";$("cancelEdit").classList.remove("hidden");window.scrollTo({top:0,behavior:"smooth"})}
+ if(del){const x=records.find(r=>r.id===del.dataset.delete);if(x&&confirm("Delete this transaction?")){records=records.filter(r=>r.id!==x.id);save();render()}}
+});
+function download(name,content,type){const blob=new Blob([content],{type}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url)}
+$("backupBtn").addEventListener("click",()=>download("my-ledger-backup-"+today()+".json",JSON.stringify({app:"My Ledger Pro",version:1,records},null,2),"application/json"));
+$("restoreBtn").addEventListener("click",()=>$("restoreFile").click());
+$("restoreFile").addEventListener("change",async e=>{
+ const file=e.target.files[0];if(!file)return;
+ try{const obj=JSON.parse(await file.text()),arr=Array.isArray(obj)?obj:obj.records;
+ if(!Array.isArray(arr)||!arr.every(x=>x&&["in","out"].includes(x.type)&&String(x.description||"").length<=200&&Number.isFinite(Number(x.amount))&&Number(x.amount)>0&&/^\d{4}-\d{2}-\d{2}$/.test(x.date))){throw new Error("Invalid backup format")}
+ if(confirm("Restore this backup? Your current ledger records will be replaced.")){records=arr.map(x=>({id:String(x.id||Date.now()+Math.random()),description:String(x.description),amount:Number(x.amount),date:x.date,type:x.type}));save();render();alert("Backup restored.")}
+ }catch(err){alert("Could not restore this file. Please select a valid My Ledger Pro JSON backup.")}
+ e.target.value="";
+});
+$("exportBtn").addEventListener("click",()=>{
+ const rows=[["Date","Description","Type","Amount"],...records.map(x=>[x.date,x.description,x.type,x.amount])];
+ const csv=rows.map(row=>row.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(",")).join("\n");
+ download("my-ledger-"+today()+".csv",csv,"text/csv;charset=utf-8");
+});
+$("clearBtn").addEventListener("click",()=>{if(confirm("Permanently clear all ledger records from this browser? Download a backup first if you need one.")){records=[];save();resetForm();render()}});
+$("changePinBtn").addEventListener("click",()=>{
+ const old=prompt("Enter your current 4-digit PIN");if(old===null)return;
+ if(old!==localStorage.getItem(PIN_KEY)){alert("Incorrect current PIN.");return}
+ const next=prompt("Enter a new 4-digit PIN");
+ if(next===null)return;if(!/^\d{4}$/.test(next)){alert("PIN must contain exactly 4 digits.");return}
+ localStorage.setItem(PIN_KEY,next);alert("PIN changed.");
+});
+})();
+</script>
+</body>
+</html>
